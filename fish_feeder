@@ -1,0 +1,91 @@
+#define WIFI_NAME "<your_wifi_name>"
+#define WIFI_PASSWORD "<your_wifi_password>"
+#define DEVICE_ID 1
+#define DEVICE_NAME "Google_EST"
+#define TOKEN "<your_token_here>"
+
+#define Lights D5 
+#define Motor_1 D1
+#define Motor_2 D2 
+#define Relay_4 D4
+
+
+#include <RemoteMe.h>
+#include <RemoteMeSocketConnector.h>
+#include <ESP8266WiFi.h>
+
+
+
+RemoteMe& remoteMe = RemoteMe::getInstance(TOKEN, DEVICE_ID);
+
+//*************** CODE FOR COMFORTABLE VARIABLE SET *********************
+
+inline void setRelay_1(boolean b) {remoteMe.getVariables()->setBoolean("Relay_1", b); }
+inline void setRelay_2(boolean b) {remoteMe.getVariables()->setBoolean("Relay_2", b); }
+inline void setRelay_3(boolean b) {remoteMe.getVariables()->setBoolean("Relay_3", b); }
+inline void setRelay_4(boolean b) {remoteMe.getVariables()->setBoolean("Relay_4", b); }
+inline void setFish_Feeder(int32_t i) {remoteMe.getVariables()->setInteger("Fish_Feeder", i); }
+
+//*************** IMPLEMENT FUNCTIONS BELOW *********************
+
+void onRelay_1Change(boolean b) {
+	Serial.printf("onRelay_1Change: b: %d\n",b);
+  digitalWrite(Lights,  b? LOW:HIGH);
+}
+void onRelay_2Change(boolean b) {
+  Serial.printf("onRelay_2Change: b: %d\n",b);
+}
+void onRelay_3Change(boolean b) {
+	Serial.printf("onRelay_3Change: b: %d\n",b);
+}
+void onRelay_4Change(boolean b) {
+	Serial.printf("onRelay_4Change: b: %d\n",b);
+}
+
+void onFish_FeederChange(int32_t i) {
+  digitalWrite(Motor_2,  HIGH);
+  digitalWrite(Motor_1,  LOW);
+  delay(i * 1000);
+  digitalWrite(Motor_2,  LOW);
+  digitalWrite(Motor_1,  HIGH);
+  Serial.printf("onFish_FeederChange: b: %d\n",i);
+  if (i != 0) {
+    setFish_Feeder(0);
+  }
+}
+
+
+
+void setup() {
+	Serial.begin(115200);
+
+  pinMode(Lights, OUTPUT);
+  pinMode(Motor_1, OUTPUT);
+  pinMode(Motor_2, OUTPUT);
+  pinMode(Relay_4, OUTPUT);
+
+  digitalWrite(Lights, HIGH);
+  digitalWrite(Motor_1,  HIGH);
+  digitalWrite(Motor_2,  LOW);
+  digitalWrite(Relay_4, HIGH);
+
+	WiFi.begin(WIFI_NAME, WIFI_PASSWORD);
+
+	while (WiFi.status() != WL_CONNECTED) {
+		delay(100);
+	}
+
+	remoteMe.getVariables()->observeBoolean("Relay_1" ,onRelay_1Change);
+	remoteMe.getVariables()->observeBoolean("Relay_2" ,onRelay_2Change);
+	remoteMe.getVariables()->observeBoolean("Relay_3" ,onRelay_3Change);
+	remoteMe.getVariables()->observeBoolean("Relay_4" ,onRelay_4Change);
+  remoteMe.getVariables()->observeInteger("Fish_Feeder" ,onFish_FeederChange);
+
+	remoteMe.setConnector(new RemoteMeSocketConnector());
+	remoteMe.sendRegisterDeviceMessage(DEVICE_NAME);
+}
+
+
+void loop() {
+	remoteMe.loop();
+}
